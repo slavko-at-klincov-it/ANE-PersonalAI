@@ -1,0 +1,31 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# Build artifacts
+*.dylib
+*.o
+train
+
+# Personal data (NEVER commit)
+corpus.jsonl
+training_data.bin
+checkpoint.bin
+watcher_state.json
+tokenizer.json
+train.log
+*.bin
+
+# IDE
+.vscode/
+.idea/
+
+# Dependencies (documented, not vendored)
+repo/

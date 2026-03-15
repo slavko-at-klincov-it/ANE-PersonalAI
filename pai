@@ -1,0 +1,98 @@
+#!/bin/bash
+# pai — Personal AI command-line interface
+# Main entry point for all personal-ai operations.
+#
+# Usage:
+#   pai scan              Scan files and update corpus
+#   pai watch             Watch for file changes in real-time
+#   pai tokenize          Prepare training data from corpus
+#   pai train             Run a training session now
+#   pai query [text]      Search/query the corpus
+#   pai stats             Show system status
+#   pai install           Install nightly training schedule
+#   pai uninstall         Remove nightly training schedule
+#   pai recent            Show recently collected files
+
+set -e
+
+DIR="$(cd "$(dirname "$0")" && pwd)"
+VENV="$DIR/.venv"
+PYTHON="$VENV/bin/python3"
+DATA_DIR="$HOME/.local/personal-ai"
+
+# Use venv python if available, otherwise system
+if [ ! -f "$PYTHON" ]; then
+    PYTHON="python3"
+fi
+
+case "${1:-help}" in
+    scan)
+        shift
+        "$PYTHON" "$DIR/collector/file_watcher.py" --scan "$@"
+        ;;
+    watch)
+        shift
+        "$PYTHON" "$DIR/collector/file_watcher.py" --live "$@"
+        ;;
+    tokenize)
+        shift
+        "$PYTHON" "$DIR/tokenizer/prepare_training_data.py" "$@"
+        ;;
+    train)
+        shift
+        bash "$DIR/trainer/train_nightly.sh" "$@"
+        ;;
+    query|ask|search)
+        shift
+        "$PYTHON" "$DIR/inference/query.py" "$@"
+        ;;
+    stats|status)
+        "$PYTHON" "$DIR/inference/query.py" --stats
+        ;;
+    recent)
+        "$PYTHON" "$DIR/inference/query.py" --recent
+        ;;
+    install)
+        PLIST="$DIR/trainer/com.personal-ai.train.plist"
+        DEST="$HOME/Library/LaunchAgents/com.personal-ai.train.plist"
+        cp "$PLIST" "$DEST"
+        launchctl load "$DEST"
+        echo "Installed nightly training (2 AM daily)"
+        echo "  plist: $DEST"
+        echo "  log:   /tmp/personal-ai-train.log"
+        ;;
+    uninstall)
+        DEST="$HOME/Library/LaunchAgents/com.personal-ai.train.plist"
+        launchctl unload "$DEST" 2>/dev/null || true
+        rm -f "$DEST"
+        echo "Uninstalled nightly training"
+        ;;
+    help|--help|-h)
+        echo "pai — Personal AI (ANE-powered local learning)"
+        echo ""
+        echo "Usage: pai <command> [args]"
+        echo ""
+        echo "Data Collection:"
+        echo "  scan [--watch dir]    Scan files and update corpus"
+        echo "  watch [--watch dir]   Watch for file changes in real-time"
+        echo "  recent                Show recently collected files"
+        echo ""
+        echo "Training:"
+        echo "  tokenize              Prepare training data from corpus"
+        echo "  train                 Run a training session now"
+        echo ""
+        echo "Query:"
+        echo "  query [text]          Interactive query / search corpus"
+        echo "  stats                 Show system status"
+        echo ""
+        echo "Scheduling:"
+        echo "  install               Install nightly training (2 AM)"
+        echo "  uninstall             Remove nightly training"
+        echo ""
+        echo "Data: $DATA_DIR"
+        ;;
+    *)
+        echo "Unknown command: $1 (try: pai help)"
+        exit 1
+        ;;
+esac

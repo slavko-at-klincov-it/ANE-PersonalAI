@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Personal AI nightly trainer -->
+    <!-- Install: cp com.personal-ai.train.plist ~/Library/LaunchAgents/ -->
+    <!-- Load:    launchctl load ~/Library/LaunchAgents/com.personal-ai.train.plist -->
+    <!-- Unload:  launchctl unload ~/Library/LaunchAgents/com.personal-ai.train.plist -->
+
+    <key>Label</key>
+    <string>com.personal-ai.train</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/slavkoklincov/Code/ANE-PersonalAI/trainer/train_nightly.sh</string>
+    </array>
+
+    <!-- Run at 2 AM daily -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>2</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- Low priority -->
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>LowPriorityIO</key>
+    <true/>
+    <key>Nice</key>
+    <integer>10</integer>
+
+    <!-- Logging -->
+    <key>StandardOutPath</key>
+    <string>/tmp/personal-ai-train.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/personal-ai-train.err</string>
+
+    <!-- Don't restart if it fails -->
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>
