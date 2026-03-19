@@ -29,3 +29,7 @@ train.log
 
 # Dependencies (documented, not vendored)
 repo/
+
+# App build artifacts
+app/.build/
+app/PersonalAI.app/

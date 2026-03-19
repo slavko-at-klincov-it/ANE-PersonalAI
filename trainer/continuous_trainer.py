@@ -68,6 +68,27 @@ DEFAULT_WATCH_DIRS = [
     os.path.expanduser("~/Notes"),
 ]
 
+CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
+
+
+def load_watch_dirs():
+    """Load watch directories from config.json, falling back to defaults."""
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE) as f:
+                config = json.load(f)
+            dirs = []
+            for source in config.get('sources', []):
+                if source.get('enabled', False):
+                    path = os.path.expanduser(source.get('path', ''))
+                    if os.path.isdir(path):
+                        dirs.append(path)
+            if dirs:
+                return dirs
+        except (json.JSONDecodeError, KeyError, OSError):
+            pass
+    return [d for d in DEFAULT_WATCH_DIRS if os.path.isdir(d)]
+
 # File extensions to watch
 TEXT_EXTENSIONS = {
     '.txt', '.md', '.markdown', '.rst', '.org', '.tex',
@@ -399,7 +420,7 @@ def main():
         show_status()
         return
 
-    watch_dirs = args.watch or [d for d in DEFAULT_WATCH_DIRS if os.path.isdir(d)]
+    watch_dirs = args.watch or load_watch_dirs()
 
     if args.daemon:
         print("Starting continuous learning daemon...")
