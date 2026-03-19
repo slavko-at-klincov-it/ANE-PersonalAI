@@ -7,6 +7,7 @@
 #   pai watch             Watch for file changes in real-time
 #   pai tokenize          Prepare training data from corpus
 #   pai train             Run a training session now
+#   pai learn [--stop]    Continuous ANE training (all day, zero impact)
 #   pai query [text]      Search/query the corpus
 #   pai stats             Show system status
 #   pai install           Install nightly training schedule
@@ -41,6 +42,10 @@ case "${1:-help}" in
     train)
         shift
         bash "$DIR/trainer/train_nightly.sh" "$@"
+        ;;
+    learn)
+        shift
+        "$PYTHON" "$DIR/trainer/continuous_trainer.py" "$@"
         ;;
     query|ask|search)
         shift
@@ -80,6 +85,10 @@ case "${1:-help}" in
         echo "Training:"
         echo "  tokenize              Prepare training data from corpus"
         echo "  train                 Run a training session now"
+        echo "  learn                 Continuous ANE training (all day, zero impact)"
+        echo "  learn --stop          Stop continuous learning"
+        echo "  learn --status        Show learning status"
+        echo "  learn --daemon        Run as background daemon"
         echo ""
         echo "Query:"
         echo "  query [text]          Interactive query / search corpus"

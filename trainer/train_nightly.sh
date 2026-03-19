@@ -1,7 +1,7 @@
 #!/bin/bash
 # train_nightly.sh — Nightly ANE training scheduler
-# Runs training when the laptop is plugged in and idle.
-# Designed to be called by launchd or cron.
+# Runs a larger batch of training when the laptop is plugged in and idle.
+# Complement to "pai learn" (continuous daytime training).
 #
 # Install as launchd agent:
 #   cp com.personal-ai.train.plist ~/Library/LaunchAgents/
@@ -10,10 +10,9 @@
 set -e
 
 DATA_DIR="$HOME/.local/personal-ai"
-# ANE Training repo — clone if not present:
-#   git clone https://github.com/maderix/ANE.git repo
-REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)/repo"
-TRAIN_DIR="$REPO_DIR/training/training_dynamic"
+# ANE Training platform
+ANE_DIR="$HOME/Code/ANE-Training"
+TRAIN_DIR="$ANE_DIR/training/training_dynamic"
 LOG_FILE="$DATA_DIR/train.log"
 LOCK_FILE="$DATA_DIR/train.lock"
 CORPUS_FILE="$DATA_DIR/corpus.jsonl"
@@ -74,7 +73,7 @@ fi
 echo $$ > "$LOCK_FILE"
 trap "rm -f $LOCK_FILE" EXIT
 
-log "Starting ANE training..."
+log "Starting ANE nightly training..."
 
 cd "$TRAIN_DIR"
 
@@ -85,10 +84,10 @@ if [ ! -f train ] || [ train.m -nt train ]; then
 fi
 
 # Symlink training data
-ln -sf "$TRAINING_DATA" ../tinystories_data00.bin
+ln -sf "$TRAINING_DATA" "$ANE_DIR/training/tinystories_data00.bin"
 
-# Run training (100 steps per nightly session)
-STEPS=100
+# Run training (500 steps per nightly session — larger batch than daytime)
+STEPS=500
 CKPT="$DATA_DIR/checkpoint.bin"
 
 if [ -f "$CKPT" ]; then
@@ -115,7 +114,7 @@ if [ -f checkpoint.bin ]; then
     log "Checkpoint saved to $CKPT"
 fi
 
-log "Training complete"
+log "Nightly training complete"
 
 # ===== Cleanup =====
 rm -f "$LOCK_FILE"

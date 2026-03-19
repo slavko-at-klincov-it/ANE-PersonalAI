@@ -8,11 +8,33 @@ Trainiert ein 109M-Parameter Transformer-Modell direkt auf Apples Neural Engine 
 
 ```
 Deine Dateien  →  Sammeln  →  Tokenisieren  →  ANE Training  →  Suche/Query
-(Code, Docs,     (FSEvents)   (BPE/tiktoken)  (91ms/step!)    (Keyword jetzt,
+(Code, Docs,     (FSEvents)   (BPE/tiktoken)  (80.9ms/step)   (Keyword jetzt,
  Notizen...)                                                    Neural später)
 ```
 
 **Getestet auf:** MacBook Pro M3 Pro, 18GB RAM, macOS 26.3.1
+
+## Kern-Feature: Continuous Learning
+
+```bash
+pai learn
+```
+
+Einmal starten, den ganzen Tag lernen. **Zero Impact** auf dein System:
+
+- **File Watcher** erkennt Änderungen in konfigurierten Ordnern (FSEvents)
+- **Bei Änderung:** tokenisiert neuen Content, trainiert 10-50 Steps auf ANE (QoS=9)
+- **Hintergrundprozess** — kein Lüfter, kein Akku-Drain, GPU/CPU bleiben frei
+- **Modell wird nach jedem Mini-Batch gespeichert** (überlebt Neustart)
+- **Kein manuelles Starten nötig** — einmal `pai learn` und es läuft den ganzen Tag
+
+```
+Du arbeitest normal  →  File Watcher erkennt Änderung  →  30s Debounce
+                        →  Collect & Tokenize  →  10-50 ANE Steps  →  Checkpoint saved
+                        →  Weiter warten...
+```
+
+Nightly-Training bleibt als Option für größere Batches über Nacht (500 Steps um 2 Uhr).
 
 ## Quickstart
 
@@ -21,9 +43,9 @@ Deine Dateien  →  Sammeln  →  Tokenisieren  →  ANE Training  →  Suche/Qu
 python3 -m venv .venv && source .venv/bin/activate
 pip install tiktoken watchdog
 
-# 2. ANE Training-Code holen (Dependency)
-git clone https://github.com/maderix/ANE.git repo
-cd repo/training/training_dynamic && make MODEL=stories110m && cd ../../..
+# 2. ANE-Training Platform holen (Dependency)
+git clone https://github.com/slavko-at-klincov-it/ANE-Training.git ~/Code/ANE-Training
+cd ~/Code/ANE-Training/training/training_dynamic && make MODEL=stories110m && cd -
 
 # 3. Dateien sammeln
 ./pai scan
@@ -31,8 +53,8 @@ cd repo/training/training_dynamic && make MODEL=stories110m && cd ../../..
 # 4. Tokenisieren
 ./pai tokenize
 
-# 5. Trainieren
-./pai train
+# 5. Continuous Learning starten
+./pai learn
 
 # 6. Suchen
 ./pai query "was habe ich letzte woche gemacht"
@@ -44,7 +66,11 @@ cd repo/training/training_dynamic && make MODEL=stories110m && cd ../../..
 pai scan [--watch dir]    Dateien scannen und Corpus aktualisieren
 pai watch                 Live-Überwachung (sofortige Erkennung neuer Dateien)
 pai tokenize              Corpus → Trainings-Tokens (BPE)
-pai train                 Training-Session starten (prüft Strom)
+pai learn                 Continuous Learning starten (den ganzen Tag, zero impact)
+pai learn --daemon        Als Hintergrund-Daemon starten
+pai learn --stop          Continuous Learning stoppen
+pai learn --status        Status des Learning-Daemons anzeigen
+pai train                 Einzelne Training-Session starten
 pai query [text]          Interaktiv suchen oder Einzel-Query
 pai stats                 Status: Corpus, Tokens, Modell, Training
 pai recent                Zuletzt gesammelte Dateien zeigen
@@ -57,23 +83,24 @@ pai uninstall             Nightly Training deaktivieren
 ### Übersicht
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    pai (CLI)                              │
-├──────────┬──────────┬──────────────┬────────────────────┤
-│ Collector│Tokenizer │   Trainer    │    Inference        │
-│          │          │              │                     │
-│ FSEvents │ tiktoken │ ANE Training │ Corpus-Suche        │
-│ → JSONL  │ BPE      │ 109M params  │ (Neural geplant)   │
-│ corpus   │ → uint16 │ 91ms/step    │                     │
-├──────────┴──────────┴──────┬───────┴────────────────────┤
-│           maderix/ANE      │        libane               │
-│     (Training Pipeline)    │   (ANE C-API, optional)     │
-├────────────────────────────┴────────────────────────────┤
-│        Apple Neural Engine (Private APIs)                │
-│    _ANEInMemoryModel, _ANERequest, IOSurface            │
-├─────────────────────────────────────────────────────────┤
-│              ANE Hardware (M1-M4, 16 Cores)              │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                       pai (CLI)                             │
+├──────────┬──────────┬───────────────┬───────────────────────┤
+│ Collector│Tokenizer │   Trainer     │    Inference          │
+│          │          │               │                       │
+│ FSEvents │ tiktoken │ Continuous    │ Corpus-Suche          │
+│ → JSONL  │ BPE      │ + Nightly    │ (Neural geplant)      │
+│ corpus   │ → uint16 │ 80.9ms/step  │                       │
+├──────────┴──────────┴──────┬────────┴───────────────────────┤
+│    slavko-at-klincov-it/   │                                │
+│       ANE-Training         │        libane                  │
+│    (Training Pipeline)     │   (ANE C-API)                  │
+├────────────────────────────┴────────────────────────────────┤
+│           Apple Neural Engine (Private APIs)                │
+│       _ANEInMemoryModel, _ANERequest, IOSurface             │
+├─────────────────────────────────────────────────────────────┤
+│             ANE Hardware (M1-M4, 16 Cores)                  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Komponenten
@@ -111,31 +138,37 @@ Konvertiert den JSONL-Corpus in binäre Token-IDs (uint16) für den ANE-Trainer.
 
 **Vocab-Compaction:** Das Training erkennt automatisch welche Token-IDs aktiv sind und komprimiert den Classifier. Bei 124 aktiven Tokens: Classifier sinkt von 87ms auf 0.4ms pro Step.
 
-#### 3. Trainer (`trainer/train_nightly.sh`)
+#### 3. Continuous Trainer (`trainer/continuous_trainer.py`)
 
-Orchestriert den Training-Prozess:
+Das Herzstück — lernt den ganzen Tag im Hintergrund:
 
 ```
-1. Ist Laptop eingesteckt? (kein Training auf Batterie)
-2. Lock-File prüfen (kein paralleler Run)
-3. Collector laufen lassen (neue Dateien sammeln)
-4. Tokenizer laufen lassen (neue Tokens erstellen)
-5. Training starten:
-   - Checkpoint vorhanden? → Resume (inkrementell!)
-   - Kein Checkpoint? → From Scratch
-6. Checkpoint speichern
+File Watcher (FSEvents)
+    │
+    ▼
+Debounce (30s nach letzter Änderung)
+    │
+    ▼
+Collect → Tokenize → Train (10-50 Steps, ANE QoS=9)
+    │
+    ▼
+Checkpoint saved → weiter warten
 ```
 
-**Nightly Schedule:** launchd-Agent, läuft um 2:00 Uhr mit Background-Priorität.
+- **Zero Impact:** ANE QoS=9 (Background), kein Lüfter, kein Akku
+- **Adaptiv:** Mehr geänderte Dateien → mehr Training-Steps (10-50)
+- **Persistent:** Modell überlebt Neustarts, wird nach jedem Mini-Batch gespeichert
+- **Daemon-Modus:** `pai learn --daemon` für unsichtbaren Hintergrundbetrieb
 
-**ANE Training Details:**
-- Modell: Stories110M (109.5M Parameter, 12 Layers, 768 dim)
-- Geschwindigkeit: 91ms/step (M3 Pro, mit Vocab-Compaction)
-- 10 ANE-Kernel werden einmal kompiliert (520ms), dann wiederverwendet
-- Weights werden im IOSurface-Spatial-Dimension gepackt (kein Recompile bei Update!)
-- QoS=9 (Background) — schnellster QoS-Level, niedrigste Systembelastung
+#### 4. Nightly Trainer (`trainer/train_nightly.sh`)
 
-#### 4. Inference (`inference/query.py`)
+Ergänzt das Continuous Learning mit größeren Batches über Nacht:
+
+- 500 Steps pro Nacht (vs. 10-50 pro Mini-Batch tagsüber)
+- Nur wenn eingesteckt (kein Training auf Batterie)
+- launchd-Agent, läuft um 2:00 Uhr mit Background-Priorität
+
+#### 5. Inference (`inference/query.py`)
 
 **Jetzt:** Keyword-Suche im Corpus mit Snippet-Anzeige.
 
@@ -149,6 +182,19 @@ Befehle im interaktiven Modus:
 /quit           Beenden
 ```
 
+## ANE Performance
+
+**Gemessen auf MacBook Pro M3 Pro (16 ANE Cores):**
+
+| Metrik | Wert |
+|--------|------|
+| Peak-Performance | **12.79 TFLOPS** (FP16) |
+| Training-Durchsatz | **2.15 TFLOPS** |
+| Training-Speed | **80.9 ms/step** |
+| ANE-Kernels | 10 (einmal kompiliert in 520ms, dann wiederverwendet) |
+| Weight-Packing | IOSurface-Spatial-Dimension (kein Recompile bei Update) |
+| QoS=9 (Background) | Schnellster QoS-Level, niedrigste Systembelastung |
+
 ## Daten
 
 Alles in `~/.local/personal-ai/` (wird NICHT committed):
@@ -161,18 +207,18 @@ Alles in `~/.local/personal-ai/` (wird NICHT committed):
 | `tokenizer.json` | Tokenizer-State (nur bei char-level) |
 | `checkpoint.bin` | Trainiertes Modell (nach Training) |
 | `train.log` | Training-Protokoll |
+| `learn.log` | Continuous Learning Log |
+| `learn.pid` | PID des Learning-Daemons |
+| `learn_state.json` | Continuous Learning Statistiken |
 
 ## Dependencies
 
 | Dependency | Was | Woher |
 |-----------|-----|-------|
-| [maderix/ANE](https://github.com/maderix/ANE) | ANE Training-Pipeline | `git clone` in `repo/` |
+| [ANE-Training](https://github.com/slavko-at-klincov-it/ANE-Training) | ANE Training-Pipeline + libane | `git clone` nach `~/Code/ANE-Training` |
 | [tiktoken](https://pypi.org/project/tiktoken/) | BPE-Tokenizer | `pip install tiktoken` |
 | [watchdog](https://pypi.org/project/watchdog/) | FSEvents File-Watcher | `pip install watchdog` |
 | Xcode CLI Tools | Compiler für ANE-Kernels | `xcode-select --install` |
-
-Optional:
-| [libane](https://github.com/TODO) | Unsere ANE C-API | Separates Repo |
 
 ## Worauf baut das auf?
 
@@ -180,10 +226,10 @@ Dieses Projekt ist das Ergebnis eines Forschungsprojekts über Apples Neural Eng
 
 1. **Reverse Engineering:** 35 private API-Klassen entdeckt, Hardware-Identität probed (M3 Pro = `h15g`, 16 Cores), 6 QoS-Level gefunden (Background=9 ist 42% schneller)
 2. **libane:** Eigene C-API mit Version-Detection gebaut (überlebt Apple API-Änderungen)
-3. **Benchmarks:** M3 Pro ANE auf 9.36 TFLOPS (FP16) / 18.23 TOPS gemessen, INT8 lohnt nicht
-4. **Training verifiziert:** Stories110M auf M3 Pro, 50 Steps stabil, kein NaN
+3. **Benchmarks:** M3 Pro ANE Peak bei 12.79 TFLOPS (FP16), Training bei 2.15 TFLOPS, 80.9ms/step
+4. **Training verifiziert:** Stories110M auf M3 Pro, stabil, kein NaN
 
-Die vollständige Forschungsdokumentation liegt im [ANE-Training](https://github.com/TODO) Repo.
+Die vollständige Forschungsdokumentation liegt im [ANE-Training](https://github.com/slavko-at-klincov-it/ANE-Training) Repo.
 
 ## Limitierungen
 

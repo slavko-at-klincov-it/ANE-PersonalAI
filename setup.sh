@@ -15,26 +15,27 @@ pip install -q tiktoken watchdog
 echo "  Python venv: OK (tiktoken + watchdog)"
 
 # 2. ANE Training repo
-if [ ! -d "$DIR/repo" ]; then
-    echo "Cloning ANE training repo..."
-    git clone https://github.com/maderix/ANE.git "$DIR/repo"
+ANE_DIR="$HOME/Code/ANE-Training"
+if [ ! -d "$ANE_DIR" ]; then
+    echo "Cloning ANE-Training repo..."
+    git clone https://github.com/slavko-at-klincov-it/ANE-Training.git "$ANE_DIR"
 else
-    echo "  ANE repo: already present"
+    echo "  ANE-Training repo: already present at $ANE_DIR"
 fi
 
 # 3. Build trainer
 echo "Building ANE trainer..."
-cd "$DIR/repo/training/training_dynamic"
+cd "$ANE_DIR/training/training_dynamic"
 make MODEL=stories110m 2>&1 | tail -1
 cd "$DIR"
 echo "  Trainer: built"
 
-# 4. Git LFS (for tokenizer.bin)
+# 4. Git LFS (for checkpoint/tokenizer)
 if command -v git-lfs &>/dev/null || git lfs version &>/dev/null 2>&1; then
-    cd "$DIR/repo" && git lfs pull 2>/dev/null && cd "$DIR"
-    echo "  Tokenizer: pulled via LFS"
+    cd "$ANE_DIR" && git lfs pull 2>/dev/null && cd "$DIR"
+    echo "  LFS data: pulled"
 else
-    echo "  Note: install git-lfs for tokenizer (brew install git-lfs)"
+    echo "  Note: install git-lfs for large files (brew install git-lfs)"
 fi
 
 # 5. Data directory
@@ -52,5 +53,5 @@ echo ""
 echo "Next steps:"
 echo "  pai scan        # Collect your files"
 echo "  pai tokenize    # Prepare training data"
-echo "  pai train       # Train on ANE"
+echo "  pai learn       # Start continuous ANE training"
 echo "  pai query       # Search your data"
