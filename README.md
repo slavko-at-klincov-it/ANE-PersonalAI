@@ -41,7 +41,7 @@ Nightly-Training bleibt als Option für größere Batches über Nacht (500 Steps
 ```bash
 # 1. Setup
 python3 -m venv .venv && source .venv/bin/activate
-pip install tiktoken watchdog PyPDF2
+pip install -r requirements.txt
 
 # 2. ANE-Training Platform holen (Dependency)
 git clone https://github.com/slavko-at-klincov-it/ANE-Training.git ~/Code/ANE-Training
@@ -259,11 +259,11 @@ Alles in `~/.local/personal-ai/` (wird NICHT committed):
 
 ## Tests
 
-**111 Tests, alle grün** (`pytest tests/`):
+**114 Tests, alle grün** (`pytest tests/`):
 
 | Testdatei | Tests | Was |
 |-----------|-------|-----|
-| `test_collector.py` | 49 | Sensitive-File-Erkennung, Text-Extraktion (UTF-8, RTF, PDF, EMLX), WatcherState, File Collection, Config-Loading, Full Scan |
+| `test_collector.py` | 52 | Sensitive-File-Erkennung, Text-Extraktion (UTF-8, RTF, PDF, EMLX), WatcherState, File Collection, Config-Loading, Full Scan |
 | `test_tokenizer.py` | 16 | CharTokenizer, TiktokenWrapper, Corpus-Loading, uint16 Binary-Output |
 | `test_trainer.py` | 16 | LearnState, ChangeAccumulator, Step-Berechnung, Config, Daemon-Status |
 | `test_query.py` | 16 | Checkpoint-Parsing, Softmax/RMSNorm/SiLU/MatMul, Keyword-Suche, Stats |
@@ -296,13 +296,16 @@ ANE-PersonalAI/
 │   ├── build.sh               Baut PersonalAI.app
 │   ├── Package.swift          Swift Package Manager
 │   └── com.personal-ai.app.plist   launchd-Agent für Auto-Start
-├── tests/                     111 pytest Tests
+├── tests/                     114 pytest Tests
 │   ├── conftest.py            Shared Fixtures
 │   ├── test_collector.py      Unit Tests Collector
 │   ├── test_tokenizer.py      Unit Tests Tokenizer
 │   ├── test_trainer.py        Unit Tests Trainer
 │   ├── test_query.py          Unit Tests Query
 │   └── test_e2e.py            End-to-End Tests
+├── .github/workflows/tests.yml   CI: pytest + Swift Build
+├── requirements.txt           Python Dependencies
+├── requirements-dev.txt       Dev Dependencies (+ pytest)
 ├── pyproject.toml             pytest Konfiguration
 ├── README.md                  Diese Datei
 └── LICENSE                    MIT
