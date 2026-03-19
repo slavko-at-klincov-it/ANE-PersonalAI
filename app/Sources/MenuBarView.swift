@@ -73,6 +73,23 @@ struct MenuBarView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
 
+            // Error message
+            if let errorMessage = appState.errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 6)
+                    .onTapGesture {
+                        appState.errorMessage = nil
+                    }
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                            appState.errorMessage = nil
+                        }
+                    }
+            }
+
             Divider()
 
             // Navigation Links

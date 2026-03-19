@@ -11,7 +11,7 @@ if [ ! -d "$DIR/.venv" ]; then
     python3 -m venv "$DIR/.venv"
 fi
 source "$DIR/.venv/bin/activate"
-pip install -q tiktoken watchdog PyPDF2
+pip install -q -r "$DIR/requirements.txt"
 echo "  Python venv: OK (tiktoken + watchdog + PyPDF2)"
 
 # 2. ANE Training repo
@@ -55,3 +55,12 @@ echo "  pai scan        # Collect your files"
 echo "  pai tokenize    # Prepare training data"
 echo "  pai learn       # Start continuous ANE training"
 echo "  pai query       # Search your data"
+
+# 7. Build menu bar app (optional)
+if command -v swift &>/dev/null; then
+    echo "Building menu bar app..."
+    cd "$DIR/app" && swift build -c release 2>&1 | tail -1 && cd "$DIR"
+    echo "  App: built (run: cd app && ./build.sh to create .app bundle)"
+else
+    echo "  Note: install Xcode CLI tools to build the menu bar app"
+fi

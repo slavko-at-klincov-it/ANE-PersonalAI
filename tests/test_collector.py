@@ -31,8 +31,19 @@ class TestIsSensitive:
     def test_api_key_in_name(self):
         assert file_watcher.is_sensitive("/home/user/api_key.txt")
 
-    def test_password_in_path(self):
-        assert file_watcher.is_sensitive("/home/user/password_store/data.txt")
+    def test_password_in_filename(self):
+        assert file_watcher.is_sensitive("/home/user/password_store.txt")
+
+    def test_ssh_dir_blocks_files(self):
+        assert file_watcher.is_sensitive("/home/user/.ssh/config")
+
+    def test_token_dir_no_false_positive(self):
+        """A folder named 'my_tokens' should NOT cause files inside to be flagged."""
+        assert not file_watcher.is_sensitive("/home/user/my_tokens/readme.md")
+
+    def test_secret_dir_no_false_positive(self):
+        """A folder named 'app_secrets_v2' should NOT cause files inside to be flagged."""
+        assert not file_watcher.is_sensitive("/home/user/app_secrets_v2/notes.txt")
 
     def test_normal_file_not_sensitive(self):
         assert not file_watcher.is_sensitive("/home/user/readme.md")

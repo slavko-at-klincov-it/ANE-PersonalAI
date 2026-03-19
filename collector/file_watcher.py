@@ -298,12 +298,24 @@ class WatcherState:
 
 
 def is_sensitive(filepath):
-    """Check if file might contain secrets."""
+    """Check if file might contain secrets.
+
+    Matches sensitive patterns against the filename (basename) only,
+    to avoid false positives from directory names like 'my_tokens/'.
+    The exception is '.ssh' which is checked against path components
+    (directory names) so that any file under a .ssh/ directory is blocked.
+    """
     name = os.path.basename(filepath).lower()
-    path_lower = filepath.lower()
+    path_parts = [p.lower() for p in Path(filepath).parts]
     for pat in SENSITIVE_PATTERNS:
-        if pat in name or pat in path_lower:
-            return True
+        if pat == '.ssh':
+            # Check against individual path components (directory names)
+            if pat in path_parts:
+                return True
+        else:
+            # Only match against the filename (basename)
+            if pat in name:
+                return True
     return False
 
 

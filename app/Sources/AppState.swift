@@ -17,6 +17,7 @@ class AppState: ObservableObject {
     @Published var corpusDocuments = 0
     @Published var corpusSizeMB: Double = 0
     @Published var trainingTokens = 0
+    @Published var errorMessage: String?
 
     private var refreshTimer: Timer?
     private let dataDir = NSString(string: "~/.local/personal-ai").expandingTildeInPath
@@ -72,7 +73,10 @@ class AppState: ObservableObject {
     // MARK: - Learning Control
 
     func startLearning() {
-        guard let paiPath = findPai() else { return }
+        guard let paiPath = findPai() else {
+            errorMessage = "pai CLI nicht gefunden. Bitte setup.sh ausführen."
+            return
+        }
 
         DispatchQueue.global(qos: .userInitiated).async {
             let task = Process()
@@ -88,7 +92,10 @@ class AppState: ObservableObject {
     }
 
     func stopLearning() {
-        guard let paiPath = findPai() else { return }
+        guard let paiPath = findPai() else {
+            errorMessage = "pai CLI nicht gefunden. Bitte setup.sh ausführen."
+            return
+        }
 
         DispatchQueue.global(qos: .userInitiated).async {
             let task = Process()
