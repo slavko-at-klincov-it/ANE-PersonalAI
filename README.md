@@ -76,7 +76,33 @@ pai stats                 Status: Corpus, Tokens, Modell, Training
 pai recent                Zuletzt gesammelte Dateien zeigen
 pai install               Nightly Training aktivieren (2 Uhr, nur wenn eingesteckt)
 pai uninstall             Nightly Training deaktivieren
+pai app-install           Menu Bar App bei Login starten
+pai app-uninstall         App Auto-Start entfernen
 ```
+
+## Menu Bar App
+
+Eine native macOS Menu Bar App für komfortables Management:
+
+- **Onboarding** — geführte Ersteinrichtung mit Quellen-Auswahl
+- **Quellen verwalten** — Verzeichnisse aktivieren/deaktivieren, eigene hinzufügen
+- **Einstellungen** — Dateitypen, Training-Parameter, Nightly Training
+- **Service-Kontrolle** — Continuous Learning starten/stoppen direkt aus der Menüleiste
+
+### Bauen & Installieren
+
+```bash
+# 1. Bauen
+cd app && ./build.sh
+
+# 2. Installieren (optional)
+cp -r PersonalAI.app /Applications/
+
+# 3. Starten
+open PersonalAI.app
+```
+
+Erfordert Xcode CLI Tools (`xcode-select --install`).
 
 ## Architektur
 

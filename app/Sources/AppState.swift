@@ -184,6 +184,99 @@ class AppState: ObservableObject {
         }
     }
 
+    // MARK: - Nightly Training LaunchAgent
+
+    func installNightlyAgent() {
+        let plistName = "com.personal-ai.train.plist"
+        let repoPath = findRepoPlist(plistName)
+        let dest = NSString(string: "~/Library/LaunchAgents/\(plistName)").expandingTildeInPath
+
+        guard let src = repoPath else { return }
+
+        try? FileManager.default.createDirectory(
+            atPath: NSString(string: "~/Library/LaunchAgents").expandingTildeInPath,
+            withIntermediateDirectories: true
+        )
+        try? FileManager.default.removeItem(atPath: dest)
+        try? FileManager.default.copyItem(atPath: src, toPath: dest)
+
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        task.arguments = ["load", dest]
+        try? task.run()
+        task.waitUntilExit()
+    }
+
+    func uninstallNightlyAgent() {
+        let plistName = "com.personal-ai.train.plist"
+        let dest = NSString(string: "~/Library/LaunchAgents/\(plistName)").expandingTildeInPath
+
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        task.arguments = ["unload", dest]
+        try? task.run()
+        task.waitUntilExit()
+
+        try? FileManager.default.removeItem(atPath: dest)
+    }
+
+    // MARK: - App Auto-Start LaunchAgent
+
+    func installAppAgent() {
+        let plistName = "com.personal-ai.app.plist"
+        let repoPath = findRepoAppPlist(plistName)
+        let dest = NSString(string: "~/Library/LaunchAgents/\(plistName)").expandingTildeInPath
+
+        guard let src = repoPath else { return }
+
+        try? FileManager.default.createDirectory(
+            atPath: NSString(string: "~/Library/LaunchAgents").expandingTildeInPath,
+            withIntermediateDirectories: true
+        )
+        try? FileManager.default.removeItem(atPath: dest)
+        try? FileManager.default.copyItem(atPath: src, toPath: dest)
+
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        task.arguments = ["load", dest]
+        try? task.run()
+        task.waitUntilExit()
+    }
+
+    func uninstallAppAgent() {
+        let plistName = "com.personal-ai.app.plist"
+        let dest = NSString(string: "~/Library/LaunchAgents/\(plistName)").expandingTildeInPath
+
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        task.arguments = ["unload", dest]
+        try? task.run()
+        task.waitUntilExit()
+
+        try? FileManager.default.removeItem(atPath: dest)
+    }
+
+    private func findRepoPlist(_ name: String) -> String? {
+        // Try relative to pai path, then known path
+        let paiExpanded = NSString(string: config.paiPath).expandingTildeInPath
+        let repoDir = (paiExpanded as NSString).deletingLastPathComponent
+        let candidate = "\(repoDir)/trainer/\(name)"
+        if FileManager.default.fileExists(atPath: candidate) { return candidate }
+        let fallback = "/Users/slavkoklincov/Code/ANE-PersonalAI/trainer/\(name)"
+        if FileManager.default.fileExists(atPath: fallback) { return fallback }
+        return nil
+    }
+
+    private func findRepoAppPlist(_ name: String) -> String? {
+        let paiExpanded = NSString(string: config.paiPath).expandingTildeInPath
+        let repoDir = (paiExpanded as NSString).deletingLastPathComponent
+        let candidate = "\(repoDir)/app/\(name)"
+        if FileManager.default.fileExists(atPath: candidate) { return candidate }
+        let fallback = "/Users/slavkoklincov/Code/ANE-PersonalAI/app/\(name)"
+        if FileManager.default.fileExists(atPath: fallback) { return fallback }
+        return nil
+    }
+
     // MARK: - Helpers
 
     var lastActivityFormatted: String {

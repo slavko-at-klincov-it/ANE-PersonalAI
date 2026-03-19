@@ -8,14 +8,38 @@ struct PAIConfig: Codable {
     var training: TrainingConfig
     var firstLaunchComplete: Bool
     var paiPath: String
+    var launchAtLogin: Bool
 
     static let defaultConfig = PAIConfig(
         sources: KnowledgeSource.defaults,
         fileTypes: .default,
         training: .default,
         firstLaunchComplete: false,
-        paiPath: "~/bin/pai"
+        paiPath: "~/bin/pai",
+        launchAtLogin: false
     )
+
+    // Memberwise init
+    init(sources: [KnowledgeSource], fileTypes: FileTypeConfig, training: TrainingConfig,
+         firstLaunchComplete: Bool, paiPath: String, launchAtLogin: Bool) {
+        self.sources = sources
+        self.fileTypes = fileTypes
+        self.training = training
+        self.firstLaunchComplete = firstLaunchComplete
+        self.paiPath = paiPath
+        self.launchAtLogin = launchAtLogin
+    }
+
+    // Support loading configs saved before launchAtLogin was added
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        sources = try container.decode([KnowledgeSource].self, forKey: .sources)
+        fileTypes = try container.decode(FileTypeConfig.self, forKey: .fileTypes)
+        training = try container.decode(TrainingConfig.self, forKey: .training)
+        firstLaunchComplete = try container.decode(Bool.self, forKey: .firstLaunchComplete)
+        paiPath = try container.decode(String.self, forKey: .paiPath)
+        launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
+    }
 
     static var configDir: String {
         NSString(string: "~/.local/personal-ai").expandingTildeInPath

@@ -230,6 +230,34 @@ def show_stats():
             state = json.load(f)
         print(f"\nWatcher:    tracking {len(state)} files")
 
+    # Continuous learning state
+    learn_state_path = os.path.join(DATA_DIR, "learn_state.json")
+    pid_path = os.path.join(DATA_DIR, "learn.pid")
+
+    daemon_running = False
+    if os.path.exists(pid_path):
+        try:
+            with open(pid_path) as f:
+                pid = int(f.read().strip())
+            os.kill(pid, 0)
+            daemon_running = True
+        except (ProcessLookupError, ValueError, OSError):
+            pass
+
+    print(f"\nLearn daemon: {'RUNNING' if daemon_running else 'NOT RUNNING'}")
+
+    if os.path.exists(learn_state_path):
+        try:
+            with open(learn_state_path) as f:
+                ls = json.load(f)
+            print(f"Total steps:   {ls.get('total_steps', 0)}")
+            print(f"Total batches: {ls.get('total_batches', 0)}")
+            last = ls.get('last_train_time')
+            if last:
+                print(f"Last trained:  {last}")
+        except (json.JSONDecodeError, OSError):
+            pass
+
     # Training log
     log_path = os.path.join(DATA_DIR, "train.log")
     if os.path.exists(log_path):

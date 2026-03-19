@@ -12,6 +12,8 @@
 #   pai stats             Show system status
 #   pai install           Install nightly training schedule
 #   pai uninstall         Remove nightly training schedule
+#   pai app-install       Auto-start menu bar app at login
+#   pai app-uninstall     Remove app auto-start
 #   pai recent            Show recently collected files
 
 set -e
@@ -60,6 +62,7 @@ case "${1:-help}" in
     install)
         PLIST="$DIR/trainer/com.personal-ai.train.plist"
         DEST="$HOME/Library/LaunchAgents/com.personal-ai.train.plist"
+        mkdir -p "$HOME/Library/LaunchAgents"
         cp "$PLIST" "$DEST"
         launchctl load "$DEST"
         echo "Installed nightly training (2 AM daily)"
@@ -71,6 +74,21 @@ case "${1:-help}" in
         launchctl unload "$DEST" 2>/dev/null || true
         rm -f "$DEST"
         echo "Uninstalled nightly training"
+        ;;
+    app-install)
+        PLIST="$DIR/app/com.personal-ai.app.plist"
+        DEST="$HOME/Library/LaunchAgents/com.personal-ai.app.plist"
+        mkdir -p "$HOME/Library/LaunchAgents"
+        cp "$PLIST" "$DEST"
+        launchctl load "$DEST"
+        echo "Installed app auto-start at login"
+        echo "  plist: $DEST"
+        ;;
+    app-uninstall)
+        DEST="$HOME/Library/LaunchAgents/com.personal-ai.app.plist"
+        launchctl unload "$DEST" 2>/dev/null || true
+        rm -f "$DEST"
+        echo "Uninstalled app auto-start"
         ;;
     help|--help|-h)
         echo "pai — Personal AI (ANE-powered local learning)"
@@ -97,6 +115,8 @@ case "${1:-help}" in
         echo "Scheduling:"
         echo "  install               Install nightly training (2 AM)"
         echo "  uninstall             Remove nightly training"
+        echo "  app-install           Auto-start menu bar app at login"
+        echo "  app-uninstall         Remove app auto-start"
         echo ""
         echo "Data: $DATA_DIR"
         ;;

@@ -53,12 +53,36 @@ STATE_FILE = os.path.join(DATA_DIR, "learn_state.json")
 ANE_TRAINING_DIR = os.path.expanduser("~/Code/ANE-Training")
 TRAIN_BIN_DIR = os.path.join(ANE_TRAINING_DIR, "training", "training_dynamic")
 
-# Training parameters
-MIN_STEPS = 10          # Minimum steps per mini-batch
-MAX_STEPS = 50          # Maximum steps per mini-batch
+# Training parameter defaults (can be overridden by config.json)
+DEFAULT_MIN_STEPS = 10
+DEFAULT_MAX_STEPS = 50
+DEFAULT_DEBOUNCE_SECS = 30
 ACCUM_STEPS = 5         # Gradient accumulation
-DEBOUNCE_SECS = 30      # Wait after last file change before training
 MIN_DATA_BYTES = 51200  # 50KB minimum training data
+
+
+def load_training_config():
+    """Load training parameters from config.json, falling back to defaults."""
+    global MIN_STEPS, MAX_STEPS, DEBOUNCE_SECS
+    MIN_STEPS = DEFAULT_MIN_STEPS
+    MAX_STEPS = DEFAULT_MAX_STEPS
+    DEBOUNCE_SECS = DEFAULT_DEBOUNCE_SECS
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE) as f:
+                config = json.load(f)
+            training = config.get('training', {})
+            MIN_STEPS = training.get('minSteps', DEFAULT_MIN_STEPS)
+            MAX_STEPS = training.get('maxSteps', DEFAULT_MAX_STEPS)
+            DEBOUNCE_SECS = training.get('debounceSeconds', DEFAULT_DEBOUNCE_SECS)
+        except (json.JSONDecodeError, KeyError, OSError):
+            pass
+
+
+# Initialize from config
+MIN_STEPS = DEFAULT_MIN_STEPS
+MAX_STEPS = DEFAULT_MAX_STEPS
+DEBOUNCE_SECS = DEFAULT_DEBOUNCE_SECS
 
 # Watch directories (same as collector)
 DEFAULT_WATCH_DIRS = [
@@ -293,6 +317,10 @@ def run_learn_loop(watch_dirs):
     if not HAS_WATCHDOG:
         log("Error: watchdog not installed. Run: pip install watchdog")
         return
+
+    # Load training parameters from config.json
+    load_training_config()
+    log(f"Config: debounce={DEBOUNCE_SECS}s, steps={MIN_STEPS}-{MAX_STEPS}")
 
     state = LearnState()
     state.started_at = datetime.now().isoformat()

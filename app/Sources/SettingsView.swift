@@ -17,7 +17,7 @@ struct SettingsView: View {
                 .environmentObject(appState)
                 .tabItem { Label("Allgemein", systemImage: "gearshape") }
         }
-        .frame(width: 460, height: 380)
+        .frame(width: 460, height: 440)
     }
 }
 
@@ -135,6 +135,13 @@ struct TrainingTab: View {
 
             Section {
                 Toggle("Nightly Training (2 Uhr)", isOn: $appState.config.training.nightlyEnabled)
+                    .onChange(of: appState.config.training.nightlyEnabled) { _, enabled in
+                        if enabled {
+                            appState.installNightlyAgent()
+                        } else {
+                            appState.uninstallNightlyAgent()
+                        }
+                    }
                 Text("500 Steps pro Nacht \u{2014} gr\u{00f6}\u{00df}ere Batches wenn der Mac eingesteckt ist und du schl\u{00e4}fst.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -203,6 +210,22 @@ struct GeneralTab: View {
                 }
             } header: {
                 Text("Pfade")
+            }
+
+            Section {
+                Toggle("Bei Login starten", isOn: $appState.config.launchAtLogin)
+                    .onChange(of: appState.config.launchAtLogin) { _, enabled in
+                        if enabled {
+                            appState.installAppAgent()
+                        } else {
+                            appState.uninstallAppAgent()
+                        }
+                    }
+                Text("PersonalAI automatisch starten wenn du dich anmeldest.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Autostart")
             }
 
             Section {

@@ -11,8 +11,8 @@ if [ ! -d "$DIR/.venv" ]; then
     python3 -m venv "$DIR/.venv"
 fi
 source "$DIR/.venv/bin/activate"
-pip install -q tiktoken watchdog
-echo "  Python venv: OK (tiktoken + watchdog)"
+pip install -q tiktoken watchdog PyPDF2
+echo "  Python venv: OK (tiktoken + watchdog + PyPDF2)"
 
 # 2. ANE Training repo
 ANE_DIR="$HOME/Code/ANE-Training"

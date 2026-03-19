@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Personal AI menu bar app — auto-start at login -->
+    <!-- Install: cp com.personal-ai.app.plist ~/Library/LaunchAgents/ -->
+    <!-- Load:    launchctl load ~/Library/LaunchAgents/com.personal-ai.app.plist -->
+    <!-- Unload:  launchctl unload ~/Library/LaunchAgents/com.personal-ai.app.plist -->
+
+    <key>Label</key>
+    <string>com.personal-ai.app</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/open</string>
+        <string>/Applications/PersonalAI.app</string>
+    </array>
+
+    <!-- Start at login -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Low priority -->
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <!-- Don't restart if it quits -->
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>
